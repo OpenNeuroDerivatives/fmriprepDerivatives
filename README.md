@@ -4,9 +4,7 @@ A community-maintained reference for **how to run fmriprep across OpenNeuro data
 
 This repo is **opinions, not data.** Discussion happens via PRs and line-comments on the documents here.
 
-Status: **WIP draft, seeded from the 2026-05-13 meeting between Felix Hoffstaedter, Joe Wexler, Austin Macdonald, and Yarik Halchenko.** Chris Markiewicz (fmriprep) was sick and missed the meeting; some questions are pending his input.
-
-Meeting recording: <https://dartmouth.zoom.us/rec/play/OXvY_H8O2Kuya3HOWgpmtNRjw9auoZz4sCYkxS_P3GWG3kYnmHNN_9w5PwO3-SbT9pa3Ex8OhIeILeqQ.DGFKhh22rtjOcDoT?autoplay=true&startTime=1778698976000>
+**Scope**: We cannot cover every consumer use case, we are aiming to produce data that will be useful for the "typical" case.
 
 ## Pipeline shape
 
@@ -19,8 +17,6 @@ We're standardizing on a **staged pipeline** rather than a single `fmriprep` inv
 4. **`fmriprep --level full`** (optional) — additionally writes the 4D resampled BOLD per output space. ~5-8× storage cost over Stage 3. Skip unless explicitly needed.
 
 **Stage outputs share one derivative dataset per (raw_dataset, fmriprep_version) pair.** Successive stages are sequential `datalad run` commits on the same dataset, not separate datasets. Within that, the **FreeSurfer subjects-directory** (under `sourcedata/freesurfer/` in the fmriprep derivative) is split out as its **own datalad subdataset** so consumers can fetch just the FreeSurfer side without the rest, or vice versa.
-
-> **TODO (block on Chris): clarify `--level resample` semantics.** What exactly does it emit? Confounds TSV — yes. 4D timeseries in template space — Felix believes no, Joe and Felix both uncertain. This is the most important open question; the answer determines whether `--level resample` is a sufficient "good default" or whether `--level full` is needed for downstream-ready derivatives.
 
 ## Recommended fmriprep invocation
 
@@ -53,7 +49,7 @@ Stage 1 uses `--anat-only` instead of `--level`. recon-all runs inside that invo
 | `--cifti-output 91k` | HCP-standard grayordinate density. Implicitly pulls in fsLR + surface registration. |
 | `--random-seed 12345` | Reproducibility. fmriprep auto-generates if unset; explicit value enables bit-identical reruns. |
 | `--skull-strip-fixed-seed` | Reproducibility of skull-stripping specifically (Atropos has stochastic init). |
-| `--use-syn-sdc warn` | SyN-based SDC fallback when no fieldmap is present; log when used. Matches Joe's practice. **TODO: confirm with reviewers** — Felix prefers not to override fmriprep defaults. |
+| `--use-syn-sdc warn` | SyN-based SDC fallback when no fieldmap is present; log when used.  **TODO: see open question** |
 | `--me-output-echos` | No-op on single-echo data. On multi-echo data, ships per-echo BOLD so downstream tools like `tedana` can do TE-dependent denoising. |
 | `--md-only-boilerplate` | Skip PDF render of methods text. Markdown is sufficient and faster. |
 | `--skip-bids-validation` | Assume input is validated upstream (in our MRIQC gate). |
@@ -62,13 +58,13 @@ Stage 1 uses `--anat-only` instead of `--level`. recon-all runs inside that invo
 
 ### Flags that should not be set
 
-- `--ignore slicetiming` — leave unset. fmriprep is data-driven: it corrects if `SliceTiming` is in the BIDS JSON sidecar, skips otherwise.
+- `--ignore slicetiming` — leave unset. fmriprep is data-driven: it corrects if `SliceTiming` is in the BIDS JSON sidecar, skips otherwise **TODO: see open question**.
 
 ### Conditional flags (per-dataset)
 
 These depend on per-dataset state and must be set at runtime, not as part of the recommended invocation.
 
-- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. Auto-detection is unreliable; both Joe and Felix gate this on manual verification (see pre-run gates above). **TODO:** standardize a machine-readable per-dataset metadata file recording skull-strip status so this can be set automatically.
+- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. Auto-detection is unreliable; both Joe and Felix gate this on manual verification (see pre-run gates above). **TODO:** See open questions.
 
 ### Optional flags
 
@@ -82,9 +78,7 @@ Left to the executor or to per-dataset judgment.
 Before invoking fmriprep on any dataset:
 
 1. **MRIQC must succeed first.** Both Joe and Felix gate fmriprep on a successful MRIQC run.
-2. **Defacing + skull-strip status verified.** Joe maintains a Google Sheet tracking which datasets have been manually checked for face presence (defacing) and prior skull-stripping. Refer to it before any run; if the dataset isn't listed, get it checked first.
-   - **TODO:** add link to Joe's spreadsheet here once shared.
-   - **TODO:** consider whether parts of this verification can be automated (face detection, intensity-distribution heuristics for skull-stripped vs not).
+2. **Defacing + skull-strip status verified.** Joe maintains a Google Sheet tracking which datasets have been manually checked for face presence (defacing) and prior skull-stripping. Refer to it before any run; if the dataset isn't listed, get it checked first. **TODO: see Open Questions**
 
 ## Output dataset naming
 
@@ -107,31 +101,29 @@ ds005374_freesurfer-7.3.2             # FreeSurfer subjects-dir, shipped as subd
 ds005374_fmriprep-25.1.4+austin1      # deliberate flavor variant (alternate config)
 ```
 
-**Stages are not separate datasets.** Each stage (anat-only → minimal → resample → optional full) is a sequential `datalad run` commit on the same `ds<id>_fmriprep-<version>` dataset. Consumers fetch the parts they want via `datalad get` patterns and git-annex `wanted` expressions (see "Distribution" TODO below).
-
-> **TODO:** confirm the structural choice — single derivative dataset with sequential `datalad run` commits, FreeSurfer as nested subdataset under `sourcedata/freesurfer/`. Felix's Stage 1 invocation produces both kinds of outputs; we just commit them to two different datasets.
-
 ## Versions and provenance
 
 - **fmriprep version**: latest stable at time of run. Encoded in the dataset name so multiple versions coexist.
 - **FreeSurfer version**: whatever fmriprep's container bundles.
 - **Templates**: come from TemplateFlow; whatever version fmriprep pulls. Document in `dataset_description.json`.
 
-## Open questions (block on Chris)
+## Open questions
 
 1. **`--level resample` semantics** — break into three sub-questions:
    1. Does it write the `_desc-confounds_timeseries.tsv` (motion params, FD, WM/CSF, aCompCor, etc.)? *Felix says yes; we believe yes with high confidence.*
    2. Does it write resampled 4D BOLD to disk in any space — T1w-native, template, or both? *Felix believes no; uncertain. This is the load-bearing question for whether Stage 3 is a sufficient "good default."*
    3. What's the on-disk storage delta vs `--level minimal`? If (b) is "no," delta should be small (just adding the confounds TSV). If (b) is "yes," the delta is large.
 2. **Storage delta** between stages 2 → 3 → 4 in concrete bytes — rough numbers for one typical subject + run.
-3. **`--use-syn-sdc warn`** — keep it (Joe) or drop it (Felix)?
-
-## Open questions (block on us)
-
-- Naming for the staged subdatasets (stage as flavor suffix vs. separate entity).
-- Whether the FreeSurfer subdataset is its own top-level dataset or a subdataset of the fmriprep derivative.
-- Workflow for the manual defacing/skull-strip review — how to make Joe's verification scale beyond one person.
-- DataLad remake special remote (Felix exploring): for shipping minimal derivatives + recomputing resample on demand
+3. **`--use-syn-sdc warn` — fall back to SyN-based SDC when no fieldmap is present?** When a fieldmap is present in the BIDS dataset, fmriprep uses it by default. Many OpenNeuro datasets lack fieldmaps, so the choice is between approximate SDC everywhere or no SDC on those subjects. Sub-questions:
+   1. Is approximate SyN-SDC better than no SDC for typical downstream analysis on OpenNeuro datasets?
+   2. Does mixing fieldmap-SDC, SyN-SDC, and no-SDC outputs introduce comparability artifacts that downstream consumers need to be aware of?
+   3. Is the `warn` log level sufficient for consumers to know per-subject which SDC method was used, or should this surface in `dataset_description.json` or a sidecar?
+4. **Slice timing correction (STC) — when is it baked in, and is there a consumer escape hatch?** Leaving `--ignore slicetiming` unset means fmriprep applies STC when `SliceTiming` is in the BIDS sidecar. STC is a temporal interpolation, not a spatial transform — it doesn't ship as a transform file. Sub-questions for Chris:
+   1. At what stage is STC baked into shipped outputs? Our reading: STC is applied to internal working BOLD before HMC at `--level minimal` (HMC needs time-aligned volumes), so the shipped HMC / coreg / SDC transforms are implicitly "spec'd against STC'd data." Verify.
+   2. Are the shipped spatial transforms still valid against non-STC'd raw BOLD, or are they entangled with STC? Determines whether a consumer can flip the STC choice without rerunning.
+   3. If they *are* entangled, the consumer's only escape is to rerun from `--level minimal` with `--ignore slicetiming`. Is that the intended workflow, or is there a built-in opt-out we're missing?
+5. Workflow for the manual defacing/skull-strip review, how/where to record this, and how to make Joe's verification scale beyond one person.
+6. DataLad remake special remote (Felix exploring): for shipping minimal derivatives + recomputing resample on demand
 
 ## Related work
 
