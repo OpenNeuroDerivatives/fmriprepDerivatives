@@ -132,8 +132,8 @@ ds005374_fmriprep-25.1.4+austin1      # deliberate flavor variant (alternate con
 
 ## Versions and provenance
 
-- **fmriprep version**: TBD. Joe is on 25.1.4; Felix on 25.1.3 / current. Austin's bare-defaults exploration used 25.2.5. No formal pin yet — defer to Chris's recommendation. The version is encoded in the dataset name (above) so a corpus can have multiple coexisting versions.
-- **FreeSurfer version**: TBD. Whatever fmriprep's container bundles (`7.3.2` in current containers); pin explicitly.
+- **fmriprep version**: latest stable at time of run. Encoded in the dataset name so multiple versions coexist.
+- **FreeSurfer version**: whatever fmriprep's container bundles.
 - **Templates**: come from TemplateFlow; whatever version fmriprep pulls. Document in `dataset_description.json`.
 
 ## Open questions (block on Chris)
