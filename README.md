@@ -176,7 +176,3 @@ ds005374_fmriprep-25.1.4+austin1      # deliberate flavor variant (alternate con
 - **Joe Wexler** — OpenNeuroDerivatives org, prior + current fmriprep runs there
 - **Yarik Halchenko** (Dartmouth) — BIDS naming, datalad infrastructure, META coordination
 - **Chris Markiewicz** (Stanford / fmriprep) — pending input on the open questions
-
-## License
-
-CC0 / public-domain dedication (preferred for opinions docs). TBD; confirm before merging.
