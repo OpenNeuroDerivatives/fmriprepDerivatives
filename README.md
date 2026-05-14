@@ -45,7 +45,7 @@ fmriprep <bids_dir> <output_dir> participant \
 
 Stage 1 uses `--anat-only` instead of `--level`. recon-all runs inside that invocation; you do not invoke `recon-all` separately.
 
-### Why each flag
+### Flags to include
 
 | Flag | Why |
 |---|---|
@@ -64,18 +64,18 @@ Stage 1 uses `--anat-only` instead of `--level`. recon-all runs inside that invo
 
 - `--ignore slicetiming` — leave unset. fmriprep is data-driven: it corrects if `SliceTiming` is in the BIDS JSON sidecar, skips otherwise.
 
+### Conditional flags (per-dataset)
+
+These depend on per-dataset state and must be set at runtime, not as part of the recommended invocation.
+
+- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. Auto-detection is unreliable; both Joe and Felix gate this on manual verification (see pre-run gates above). **TODO:** standardize a machine-readable per-dataset metadata file recording skull-strip status so this can be set automatically.
+
 ### Optional flags
 
 Left to the executor or to per-dataset judgment.
 
 - `--track-carbon`, `--stop-on-first-crash`, `--resource-monitor` — executor concerns.
 - `--bids-filter-file` — per-dataset.
-
-### Conditional flags (per-dataset)
-
-These depend on per-dataset state and must be set at runtime, not as part of the recommended invocation.
-
-- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. Auto-detection is unreliable; both Joe and Felix gate this on manual verification (see pre-run gates above). **TODO:** standardize a machine-readable per-dataset metadata file recording skull-strip status so this can be set automatically.
 
 ## Pre-run gates
 
@@ -131,20 +131,11 @@ ds005374_fmriprep-25.1.4+austin1      # deliberate flavor variant (alternate con
 - Naming for the staged subdatasets (stage as flavor suffix vs. separate entity).
 - Whether the FreeSurfer subdataset is its own top-level dataset or a subdataset of the fmriprep derivative.
 - Workflow for the manual defacing/skull-strip review — how to make Joe's verification scale beyond one person.
+- DataLad remake special remote (Felix exploring): for shipping minimal derivatives + recomputing resample on demand
 
 ## Related work
 
 - Felix's bootstrap pipeline: https://cerebra.fz-juelich.de/f.hoffstaedter/bootstrap_fMRIprep
 - Joe's recent reproman-driven runs: see any `OpenNeuroDerivatives/ds*-fmriprep` repo with `.reproman/jobs/local/`
-- BABS: https://github.com/PennLINC/babs
-- DataLad ReMake (Felix exploring): for shipping minimal derivatives + recomputing resample on demand
 - fmriprep docs: https://fmriprep.org/en/stable/usage.html
 - BIDS derivatives spec: https://bids-specification.readthedocs.io/en/stable/derivatives/
-
-## Contributors
-
-- **Austin Macdonald** (Dartmouth) — current maintainer of this doc; runs mechababs over OpenNeuro at scale
-- **Felix Hoffstaedter** (FZ Jülich) — long-running OpenNeuro preprocessing on cerebra
-- **Joe Wexler** — OpenNeuroDerivatives org, prior + current fmriprep runs there
-- **Yarik Halchenko** (Dartmouth) — BIDS naming, datalad infrastructure, META coordination
-- **Chris Markiewicz** (Stanford / fmriprep) — pending input on the open questions
