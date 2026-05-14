@@ -61,7 +61,7 @@ fmriprep <bids_dir> <output_dir> participant \
   --cifti-output 91k \
   --random-seed 12345 \
   --skull-strip-fixed-seed \
-  --skull-strip-t1w force \
+  --use-syn-sdc warn \
   --me-output-echos \
   --md-only-boilerplate \
   --skip-bids-validation \
@@ -81,20 +81,29 @@ Stage 1 uses `--anat-only` instead of `--level`. recon-all runs inside that invo
 | `--cifti-output 91k` | HCP-standard grayordinate density. Implicitly pulls in fsLR + surface registration. |
 | `--random-seed 12345` | Reproducibility. fmriprep auto-generates if unset; explicit value enables bit-identical reruns. |
 | `--skull-strip-fixed-seed` | Reproducibility of skull-stripping specifically (Atropos has stochastic init). |
-| `--skull-strip-t1w force` | fmriprep's auto-detection of "is this already skull-stripped?" is unreliable. False positives silently corrupt downstream. Force eliminates that failure mode at the cost of redundant compute on already-stripped brains. **Manual pre-run verification still required** (see below). |
+| `--use-syn-sdc warn` | SyN-based SDC fallback when no fieldmap is present; log when used. Matches Joe's practice. **TODO: confirm with reviewers** — Felix prefers not to override fmriprep defaults. |
 | `--me-output-echos` | No-op on single-echo data. On multi-echo data, ships per-echo BOLD so downstream tools like `tedana` can do TE-dependent denoising. |
 | `--md-only-boilerplate` | Skip PDF render of methods text. Markdown is sufficient and faster. |
 | `--skip-bids-validation` | Assume input is validated upstream (in our MRIQC gate). |
 | `--notrack` | Disable telemetry. |
 | `--level` | Picks pipeline stage. See pipeline diagram above. |
 
-### Flags deliberately NOT set
+### Flags that should not be set
 
 - `--ignore slicetiming` — leave unset. fmriprep is data-driven: it corrects if `SliceTiming` is in the BIDS JSON sidecar, skips otherwise.
-- `--use-aroma` — removed from fmriprep ≥ 23. AROMA is run as a separate downstream step on the NLin6Asym:res-2 output.
-- `--use-syn-sdc` — **TODO/TBD.** Joe sets it to `warn`; Felix doesn't. Heterogeneous OpenNeuro fieldmap availability argues for the fallback, but Felix's principle of "don't override fmriprep defaults" argues against. Pending decision.
-- `--track-carbon`, `--stop-on-first-crash`, `--resource-monitor` — executor concerns, not preprocessing-standard concerns.
-- `--bids-filter-file` — per-dataset, not part of the standard.
+
+### Optional flags
+
+Left to the executor or to per-dataset judgment.
+
+- `--track-carbon`, `--stop-on-first-crash`, `--resource-monitor` — executor concerns.
+- `--bids-filter-file` — per-dataset.
+
+### Conditional flags (per-dataset)
+
+These depend on per-dataset state and must be set at runtime, not as part of the recommended invocation.
+
+- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. Auto-detection is unreliable; both Joe and Felix gate this on manual verification (see pre-run gates above). **TODO:** standardize a machine-readable per-dataset metadata file recording skull-strip status so this can be set automatically.
 
 ## Pre-run gates
 
@@ -150,15 +159,6 @@ ds005374_fmriprep-25.1.4+austin1      # deliberate flavor variant (alternate con
 - Naming for the staged subdatasets (stage as flavor suffix vs. separate entity).
 - Whether the FreeSurfer subdataset is its own top-level dataset or a subdataset of the fmriprep derivative.
 - Workflow for the manual defacing/skull-strip review — how to make Joe's verification scale beyond one person.
-
-## Action items
-
-- [ ] Joe: add Austin to OpenNeuroDerivatives org. ✅ assumed done
-- [ ] Austin: draft initial PR (this commit).
-- [ ] Group: line-comment review on the draft.
-- [ ] Ping Chris with the three open questions above when he's recovered.
-- [ ] Austin: run agreed config on one dataset; ask Joe + Felix to run the same; compare outputs.
-- [ ] Austin: get access to Joe's defacing/skull-strip spreadsheet; link it here.
 
 ## Related work
 
