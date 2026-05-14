@@ -10,39 +10,11 @@ Meeting recording: <https://dartmouth.zoom.us/rec/play/OXvY_H8O2Kuya3HOWgpmtNRjw
 
 ## Pipeline shape
 
-We're standardizing on a **staged pipeline** rather than a single `fmriprep` invocation. Each stage produces a separate datalad dataset that can be cloned / combined as needed.
-
-```
-                    ┌──────────────────────────────┐
-                    │ 1. fmriprep --anat-only       │  Slow (~hours wall-clock, dominated by
-                    │                               │  FreeSurfer's recon-all). Low RAM.
-                    │                               │  No BOLD touched.
-                    └──────────────┬────────────────┘
-                                   │
-                                   ▼
-                    ┌──────────────────────────────┐
-                    │ 2. fmriprep --level minimal   │  Adds BOLD-side transforms (HMC, coreg,
-                    │    Reuses stage 1 outputs.    │  SDC). No resampling. Confounds TSV emitted.
-                    └──────────────┬────────────────┘  Smallest fmriprep BOLD derivative.
-                                   │
-                                   ▼
-                    ┌──────────────────────────────┐
-                    │ 3. fmriprep --level resample  │  Applies the composed transform once
-                    │    Reuses above.              │  internally. Probably does NOT write 4D
-                    └──────────────┬────────────────┘  timeseries in template space.
-                                   │                  TODO (block on Chris): confirm.
-                                   ▼ (optional)
-                    ┌──────────────────────────────┐
-                    │ 4. fmriprep --level full      │  Writes resampled 4D BOLD in template
-                    │    Reuses above.              │  space. ~5-8× storage cost.
-                    └──────────────────────────────┘  Skip unless explicitly needed.
-```
-
-### Stage-by-stage detail
+We're standardizing on a **staged pipeline** rather than a single `fmriprep` invocation.
 
 0. **MRIQC** (gate; must succeed before any fmriprep stage).
-1. **`fmriprep --anat-only` + `--output-spaces`** — produces the full anatomical BIDS-derivatives scaffold (bias-corrected T1w, brain mask, segmentation, T1w↔MNI transforms in both NLin2009cAsym and NLin6Asym, surfaces, fsLR/fsaverage registration). Also produces the FreeSurfer subjects-directory, which is split out as a separate datalad subdataset mounted at `sourcedata/freesurfer/` so consumers can fetch it independently.
-2. **`fmriprep --level minimal`** — adds BOLD-side transforms (HMC, BOLD→T1w coreg, SDC). No confounds, no resampling, no BOLD outputs in any template space.
+1. **`fmriprep --anat-only` + `--output-spaces`** — produces the full anatomical BIDS-derivatives scaffold (bias-corrected T1w, brain mask, segmentation, T1w↔MNI transforms in both NLin2009cAsym and NLin6Asym, surfaces, fsLR/fsaverage registration). Also produces the FreeSurfer subjects-directory, which is split out as a separate datalad subdataset mounted at `sourcedata/freesurfer/` so consumers can fetch it independently. Slow (~hours wall-clock, dominated by FreeSurfer's `recon-all`); low RAM; no BOLD touched.
+2. **`fmriprep --level minimal`** — adds BOLD-side transforms (HMC, BOLD→T1w coreg, SDC). No confounds, no resampling, no BOLD outputs in any template space. Smallest fmriprep BOLD derivative.
 3. **`fmriprep --level resample`** — applies the composed transform chain internally to derive denoising **regressors** (motion params, framewise displacement, WM/CSF means, aCompCor components), written to `_desc-confounds_timeseries.tsv`. **Does NOT itself denoise the BOLD** — that's a downstream step. Probably does NOT serialize the 4D resampled BOLD in template space either; **TODO: confirm with Chris.**
 4. **`fmriprep --level full`** (optional) — additionally writes the 4D resampled BOLD per output space. ~5-8× storage cost over Stage 3. Skip unless explicitly needed.
 
