@@ -60,7 +60,7 @@ Stage 1 uses `--anat-only` instead of `--level`.
 
 These depend on per-dataset state and must be set at runtime, not as part of the recommended invocation.
 
-- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. Auto-detection is unreliable; both Joe and Felix gate this on manual verification (see pre-run gates above). **TODO: see open questions**
+- `--skull-strip-t1w {force,skip}` — `force` if the dataset has not been skull-stripped, `skip` if it has. fmriprep's built-in detection is unreliable, so this is gated on manual verification (see pre-run gates below). A reliable detector would let fmriprep choose automatically; there's upstream interest in adding one if a good algorithm turns up. **TODO: see open questions**
 
 ### Optional flags
 
@@ -74,8 +74,8 @@ Left to the executor or to per-dataset judgment.
 
 Before invoking fmriprep on any dataset:
 
-1. **MRIQC must succeed first.** Both Joe and Felix gate fmriprep on a successful MRIQC run.
-2. **Defacing + skull-strip status verified.** Joe maintains a Google Sheet tracking which datasets have been manually checked for face presence (defacing) and prior skull-stripping. Refer to it before any run; if the dataset isn't listed, get it checked first. **TODO: see open questions**
+1. **MRIQC must succeed first.** fmriprep runs are gated on a successful MRIQC run.
+2. **Defacing + skull-strip status verified.** A manually-maintained Google Sheet tracks which datasets have been checked for face presence (defacing) and prior skull-stripping. Refer to it before any run; if the dataset isn't listed, get it checked first. Operating on undefaced data we don't have permission to redistribute is not allowed, so an unverified dataset is a hard stop. **TODO: see open questions**
 
 ## Output dataset naming
 
