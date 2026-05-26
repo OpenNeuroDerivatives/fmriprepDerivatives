@@ -43,7 +43,7 @@ Stage 1 uses `--anat-only` instead of `--level`.
 
 | Flag | Why |
 |---|---|
-| `--output-spaces MNI152NLin2009cAsym:res-2 MNI152NLin6Asym:res-2` | Both modern (NLin2009cAsym) and HCP/AROMA-lineage (NLin6Asym) volumetric. `res-2` (2mm) is the de-facto fMRI analysis standard; `res-native` is a space-saving hack, not a recommendation. |
+| `--output-spaces MNI152NLin2009cAsym:res-2 MNI152NLin6Asym:res-2` | Both modern (NLin2009cAsym) and HCP/AROMA-lineage (NLin6Asym) volumetric, confirmed sufficient by the consumer (no additional spaces requested). `res-2` (2mm) is the de-facto fMRI analysis standard. Note `res-2` is a *resampling target*, not the acquisition resolution — record the original/native resolution in `dataset_description.json` (or a sidecar) so it isn't lost. We do not ship a native-resolution space. |
 | `--cifti-output 91k` | HCP-standard grayordinate density. Implicitly pulls in fsLR + surface registration. |
 | `--random-seed 12345` | Reproducibility. fmriprep auto-generates if unset; explicit value enables bit-identical reruns. |
 | `--skull-strip-fixed-seed` | Reproducibility of skull-stripping specifically (Atropos has stochastic init). |
