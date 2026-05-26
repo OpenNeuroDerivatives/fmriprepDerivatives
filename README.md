@@ -92,15 +92,15 @@ Per BIDS derivatives spec (clarified by Yarik):
 Examples:
 
 ```
-ds005374_fmriprep-25.1.4              # the fmriprep derivative (all stages share this)
+ds005374_fmriprep-25.2.5              # the fmriprep derivative (all stages share this)
 ds005374_freesurfer-7.3.2             # FreeSurfer subjects-dir, shipped as subdataset
-                                      # mounted under ds005374_fmriprep-25.1.4/sourcedata/freesurfer/
-ds005374_fmriprep-25.1.4+austin1      # deliberate flavor variant (alternate config)
+                                      # mounted under ds005374_fmriprep-25.2.5/sourcedata/freesurfer/
+ds005374_fmriprep-25.2.5+austin1      # deliberate flavor variant (alternate config)
 ```
 
 ## Versions and provenance
 
-- **fmriprep version**: latest stable at time of run. Encoded in the dataset name so multiple versions coexist.
+- **fmriprep version**: pinned to the **25.2 LTS** series (currently 25.2.5). fmriprep cuts an LTS roughly every 5 years (25.2 is the first since 2022; next is expected ~30.2). Holding one version across the whole corpus keeps outputs comparable — fixing pipeline + version is a known reproducibility lever (cf. Milham et al. on pipeline-induced variability). 25.2 is also the latest release today. Encoded in the dataset name so multiple versions can still coexist.
 - **FreeSurfer version**: whatever fmriprep's container bundles.
 - **Templates**: come from TemplateFlow; whatever version fmriprep pulls. Document in `dataset_description.json`.
 
