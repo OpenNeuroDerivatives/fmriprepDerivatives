@@ -47,7 +47,7 @@ Stage 1 uses `--anat-only` instead of `--level`.
 | `--cifti-output 91k` | HCP-standard grayordinate density. Implicitly pulls in fsLR + surface registration. |
 | `--random-seed 12345` | Reproducibility. fmriprep auto-generates if unset; explicit value enables bit-identical reruns. |
 | `--skull-strip-fixed-seed` | Reproducibility of skull-stripping specifically (Atropos has stochastic init). |
-| `--use-syn-sdc warn` | SyN-based SDC fallback when no fieldmap is present; log when used. |
+| `--use-syn-sdc warn` | Apply SyN-based SDC when no fieldmap is present (approximate distortion correction beats none for the typical case), and log (`warn`) when the fallback fires. Caveat for consumers: the SyN warp is nonlinear and can't be un-applied once baked into resampled BOLD, and a dataset may mix fieldmap-SDC / SyN-SDC / no-SDC across subjects. |
 | `--me-output-echos` | No-op on single-echo data. On multi-echo data, ships per-echo BOLD so downstream TE-dependent denoising (e.g. `tedana`) stays possible. Kept on as a hedge — consumers may not run tedana but might want the option later; the cost is duplicated raw echoes on multi-echo datasets. |
 | `--md-only-boilerplate` | Skip PDF render of methods text. Markdown is sufficient and faster. |
 | `--skip-bids-validation` | Assume input is validated upstream (in our MRIQC gate). |
@@ -56,7 +56,7 @@ Stage 1 uses `--anat-only` instead of `--level`.
 
 ### Flags that should not be set
 
-- `--ignore slicetiming` — leave unset. fmriprep is data-driven: it corrects if `SliceTiming` is in the BIDS JSON sidecar, skips otherwise. **TODO: see open questions**
+- `--ignore slicetiming` — leave unset; let fmriprep decide. It is data-driven: it corrects when `SliceTiming` is in the BIDS sidecar and skips otherwise. STC has no effect on `minimal` outputs anyway (it only touches the coregistration reference), so it bites only once we ship resampled BOLD.
 
 ### Conditional flags (per-dataset)
 
@@ -108,15 +108,9 @@ ds005374_fmriprep-25.2.5+austin1      # deliberate flavor variant (alternate con
 ## Open questions
 
 1. **Storage delta** between `minimal` and `full` in concrete bytes — rough numbers for one typical subject + run. (`minimal` and `resample` are identical today, so the only real delta is minimal → full.)
-2. **`--use-syn-sdc warn`: fall back to SyN-based SDC when no fieldmap is present?** With a fieldmap, fmriprep applies it by default; many OpenNeuro datasets lack one, so the choice is approximate SDC everywhere vs. no SDC on those subjects. `minimal` only *outputs* the SDC warp, leaving application to the consumer — but the warp is nonlinear and cannot be un-applied once baked into resampled 4D (`full`), so the decision only bites when shipping `full`. Open:
-   1. Is approximate SyN-SDC better than no SDC for typical downstream analysis on OpenNeuro datasets?
-   2. Does mixing fieldmap-SDC, SyN-SDC, and no-SDC outputs introduce comparability artifacts consumers need to know about?
-   3. Is the `warn` log level enough for consumers to know per-subject which SDC method was used, or should this surface in `dataset_description.json` or a sidecar?
-3. **Slice timing correction (STC): when is it baked in, and is there a consumer escape hatch?** Leaving `--ignore slicetiming` unset applies STC when `SliceTiming` is in the sidecar. STC has **zero impact on `minimal`** (it only affects the coregistration reference), so it's moot for the current minimal target; it matters once we ship resampled BOLD. Current lean: follow the fmriprep default (apply when metadata present); simulations suggest the effect is negligible below ~0.5s TR. Open:
-   1. At what stage is STC baked into shipped outputs?
-   2. Are the shipped spatial transforms still valid against non-STC'd raw BOLD, or are they entangled with STC?
-4. Workflow for the manual defacing/skull-strip review — how/where to record it, and how to scale it beyond a single reviewer.
-5. DataLad remake special remote: for shipping minimal derivatives + recomputing resample on demand.
+2. **Per-subject SDC provenance.** We apply SyN-SDC with `warn`-level logging, but `warn` lands in the run log, not the shipped data. Should the SDC method used per subject (fieldmap / SyN / none) surface in `dataset_description.json` or a sidecar so consumers can account for mixed-method comparability?
+3. Workflow for the manual defacing/skull-strip review — how/where to record it, and how to scale it beyond a single reviewer.
+4. DataLad remake special remote: for shipping minimal derivatives + recomputing resample on demand.
 
 ## Related work
 
