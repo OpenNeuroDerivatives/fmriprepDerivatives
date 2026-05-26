@@ -28,6 +28,7 @@ fmriprep <bids_dir> <output_dir> participant \
   --random-seed 12345 \
   --skull-strip-fixed-seed \
   --use-syn-sdc warn \
+  --me-output-echos \
   --md-only-boilerplate \
   --skip-bids-validation \
   --notrack \
@@ -46,7 +47,8 @@ Stage 1 uses `--anat-only` instead of `--level`.
 | `--cifti-output 91k` | HCP-standard grayordinate density. Implicitly pulls in fsLR + surface registration. |
 | `--random-seed 12345` | Reproducibility. fmriprep auto-generates if unset; explicit value enables bit-identical reruns. |
 | `--skull-strip-fixed-seed` | Reproducibility of skull-stripping specifically (Atropos has stochastic init). |
-| `--use-syn-sdc warn` | SyN-based SDC fallback when no fieldmap is present; log when used. **TODO: see open questions** |
+| `--use-syn-sdc warn` | SyN-based SDC fallback when no fieldmap is present; log when used. |
+| `--me-output-echos` | No-op on single-echo data. On multi-echo data, ships per-echo BOLD so downstream TE-dependent denoising (e.g. `tedana`) stays possible. Kept on as a hedge — consumers may not run tedana but might want the option later; the cost is duplicated raw echoes on multi-echo datasets. |
 | `--md-only-boilerplate` | Skip PDF render of methods text. Markdown is sufficient and faster. |
 | `--skip-bids-validation` | Assume input is validated upstream (in our MRIQC gate). |
 | `--notrack` | Disable telemetry. |
@@ -68,7 +70,6 @@ Left to the executor or to per-dataset judgment.
 
 - `--track-carbon`, `--stop-on-first-crash`, `--resource-monitor` — executor concerns.
 - `--bids-filter-file` — per-dataset.
-- `--me-output-echos` — only when planning to run `tedana` (or other TE-dependent denoising) downstream. No-op on single-echo data; on multi-echo data it ships per-echo BOLD, which otherwise just duplicates the raw echoes at storage cost. tedana is not a set-and-forget step (it needs per-dataset human inspection of the ICA), so this is off by default.
 
 ## Pre-run gates
 
