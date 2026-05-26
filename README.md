@@ -106,19 +106,16 @@ ds005374_fmriprep-25.2.5+austin1      # deliberate flavor variant (alternate con
 
 ## Open questions
 
-1. **`--level resample` semantics** What gets written by this step?
-   1. Does it write the `_desc-confounds_timeseries.tsv`
-   2. Does it write resampled 4D BOLD to disk in any space?
-2. **Storage delta** between stages 2 → 3 → 4 in concrete bytes — rough numbers for one typical subject + run.
-3. **`--use-syn-sdc warn`: fall back to SyN-based SDC when no fieldmap is present?** When a fieldmap is present in the BIDS dataset, fmriprep uses it by default. Many OpenNeuro datasets lack fieldmaps, so the choice is between approximate SDC everywhere or no SDC on those subjects. Sub-questions:
+1. **Storage delta** between `minimal` and `full` in concrete bytes — rough numbers for one typical subject + run. (`minimal` and `resample` are identical today, so the only real delta is minimal → full.)
+2. **`--use-syn-sdc warn`: fall back to SyN-based SDC when no fieldmap is present?** With a fieldmap, fmriprep applies it by default; many OpenNeuro datasets lack one, so the choice is approximate SDC everywhere vs. no SDC on those subjects. `minimal` only *outputs* the SDC warp, leaving application to the consumer — but the warp is nonlinear and cannot be un-applied once baked into resampled 4D (`full`), so the decision only bites when shipping `full`. Open:
    1. Is approximate SyN-SDC better than no SDC for typical downstream analysis on OpenNeuro datasets?
-   2. Does mixing fieldmap-SDC, SyN-SDC, and no-SDC outputs introduce comparability artifacts that downstream consumers need to be aware of?
-   3. Is the `warn` log level sufficient for consumers to know per-subject which SDC method was used, or should this surface in `dataset_description.json` or a sidecar?
-4. **Slice timing correction (STC): when is it baked in, and is there a consumer escape hatch?** Leaving `--ignore slicetiming` unset means fmriprep applies STC when `SliceTiming` is in the BIDS sidecar.
+   2. Does mixing fieldmap-SDC, SyN-SDC, and no-SDC outputs introduce comparability artifacts consumers need to know about?
+   3. Is the `warn` log level enough for consumers to know per-subject which SDC method was used, or should this surface in `dataset_description.json` or a sidecar?
+3. **Slice timing correction (STC): when is it baked in, and is there a consumer escape hatch?** Leaving `--ignore slicetiming` unset applies STC when `SliceTiming` is in the sidecar. STC has **zero impact on `minimal`** (it only affects the coregistration reference), so it's moot for the current minimal target; it matters once we ship resampled BOLD. Current lean: follow the fmriprep default (apply when metadata present); simulations suggest the effect is negligible below ~0.5s TR. Open:
    1. At what stage is STC baked into shipped outputs?
    2. Are the shipped spatial transforms still valid against non-STC'd raw BOLD, or are they entangled with STC?
-5. Workflow for the manual defacing/skull-strip review, how/where to record this, and how to make Joe's verification scale beyond one person.
-6. DataLad remake special remote (Felix exploring): for shipping minimal derivatives + recomputing resample on demand
+4. Workflow for the manual defacing/skull-strip review — how/where to record it, and how to scale it beyond a single reviewer.
+5. DataLad remake special remote: for shipping minimal derivatives + recomputing resample on demand.
 
 ## Related work
 
