@@ -1,0 +1,8 @@
+# Local-only Claude Code memory (per-developer notes / pointers)
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Editor + OS noise
+*.swp
+*.swo
+.DS_Store
