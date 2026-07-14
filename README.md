@@ -14,7 +14,7 @@ We're standardizing on a **staged pipeline** rather than a single `fmriprep` inv
 3. **`fmriprep --level resample`** — the *intended* target stage: derive denoising **regressors** (motion params, framewise displacement, WM/CSF means, aCompCor components) into `_desc-confounds_timeseries.tsv`, without writing 4D BOLD in any template space. **Today this is byte-identical to `minimal`** — resample does not yet emit confounds; currently those come out only of `--level full`. fmriprep plans to add the confounds to resample (Discussed with Chris 2026-05-19). Until that lands we run `minimal` (Stage 2), which is identical, so we can upgrade in place once resample gains confounds.
 4. **`fmriprep --level full`** (optional) — additionally writes the 4D resampled BOLD per output space (and, today, the confounds). ~5-8× storage cost over Stage 3. Skip unless explicitly needed.
 
-**Stage outputs share one derivative dataset per (raw_dataset, fmriprep_version) pair.** Successive stages are sequential `datalad run` commits on the same dataset, not separate datasets. Within that, the **FreeSurfer subjects-directory** (under `sourcedata/freesurfer/` in the fmriprep derivative) is split out as its **own datalad subdataset** so consumers can fetch just the FreeSurfer side without the rest, or vice versa.
+**Each published stage is its own derivative dataset**, named per (raw_dataset, fmriprep_version, stage) — `anat` and `minimal` ship as separate, independently-consumable objects, not one combined dataset. **`resample`**, if produced, could instead ride on top of `minimal` as additional `datalad run` commits on the *same* dataset. How `resample` and `full` will be handled is revisitable. Within a derivative, the **FreeSurfer subjects-directory** (under `sourcedata/freesurfer/` in the `anat` derivative) is split out as its **own datalad subdataset** so consumers can fetch just the FreeSurfer side without the rest, or vice versa.
 
 ## Recommended fmriprep invocation
 
@@ -88,15 +88,17 @@ Per BIDS derivatives spec (clarified by Yarik):
 
 - **Underscore** separates entities; **dash** separates pipeline name from flavor.
 - **`+`** chains flavors.
+- The **pipeline stage** (`anat` / `minimal` / `full`) is carried as the leading `+`-flavor, because each published stage is its own dataset (see Pipeline shape). If `resample` is produced on top of `minimal`, it isn't separately named — it lands as commits on the `minimal` dataset.
 - Don't bake executor (BABS / reproman / bash-heredoc / etc.) into the name — different executors should produce machine-precision-identical output for the same fmriprep config.
 
 Examples:
 
 ```
-ds005374_fmriprep-25.2.5              # the fmriprep derivative (all stages share this)
-ds005374_freesurfer-7.3.2             # FreeSurfer subjects-dir, shipped as subdataset
-                                      # mounted under ds005374_fmriprep-25.2.5/sourcedata/freesurfer/
-ds005374_fmriprep-25.2.5+austin1      # deliberate flavor variant (alternate config)
+ds005374_fmriprep-25.2.5+anat              # the anat-only derivative (its own dataset)
+ds005374_fmriprep-25.2.5+minimal           # the minimal BOLD-side derivative (its own dataset; resample could ride on top of this one)
+ds005374_freesurfer-7.3.2                  # FreeSurfer subjects-dir, shipped as subdataset
+                                           # mounted under the anat derivative's sourcedata/freesurfer/
+ds005374_fmriprep-25.2.5+minimal+austin1   # a deliberate config variant, chained after the stage flavor
 ```
 
 ## Versions and provenance
